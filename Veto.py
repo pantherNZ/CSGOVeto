@@ -72,12 +72,13 @@ class VetoStartPage(BaseFrame):
 
         # Veto data for the various game types (team #, action type, action number)
         veto_data = {
-            'BO1': ['1BAN1', '1BAN2', '2BAN1', '2BAN2', '2BAN3', '2PICK1'],
-            'BO3': ['1BAN1', '2BAN1', '1PICK1', '2PICK1', '1BAN2', '2BAN2']
+            'BO1': ['1BAN1', '1BAN2', '2BAN1', '2BAN2', '2BAN3', '1BAN3'],
+            'BO2': ['1BAN1', '2BAN1', '1PICK1', '2PICK1', 'FINISH'],
+            'BO3': ['1BAN1', '2BAN1', '1PICK1', '2PICK1', '1BAN2', '2BAN2'],
+            'BO5': ['1BAN1', '2BAN1', '1PICK1', '2PICK1', '1PICK2', '2PICK2'],
         }
 
-        data = [self.team1_text.get(), self.team2_text.get(), veto_data[self.gametype_combo.get()]]
-        self.beginveto_button = tk.Button(self, text = "Start", command = lambda: master.switch_frame(VetoMainPage, data))
+        self.beginveto_button = tk.Button(self, text = "Start", command = lambda: master.switch_frame(VetoMainPage, [self.team1_text.get(), self.team2_text.get(), veto_data[self.gametype_combo.get()]]))
         self.beginveto_button.grid(row = 5, column = 0, padx = border[0], pady = (spacing, 0), sticky = W + E)
 
 
@@ -90,7 +91,7 @@ class VetoMainPage(BaseFrame):
         self.state_index = 0
         self.data = data
         self.state = self.data[2][self.state_index]
-        self.ordinals = [('first', '1st'), ('second', '2nd'), ('third', '3rd')]
+        self.ordinals = [('first', '1st'), ('second', '2nd'), ('third', '3rd'), ('fourth', '4th'), ('fifth', '5th')]
         self.maps_picked = 0
         self['bg'] = 'black'
 
@@ -138,6 +139,10 @@ class VetoMainPage(BaseFrame):
         new_label.grid(row = self.map_row, column = 0, columnspan = 4, sticky = W)
         self.timeline.append(text)
 
+    def add_export_button(self):
+        self.export_btn = tk.Button(self, text = 'Export', font = ("Helvetica", 12), command = lambda: self.file_save())
+        self.export_btn.grid(row = 0, column = 6, pady = (10, 30), ipadx = 40, columnspan = 2, rowspan = 2, sticky = N)
+
     def button_press(self, button_index):
         if self.selected != -1:
             self.map_data[self.selected][1]['fg'] = 'white'
@@ -174,17 +179,24 @@ class VetoMainPage(BaseFrame):
 
                 for x in self.map_data:
                     if x[0]:
-                        x[1]['text'] = self.ordinals[self.maps_picked][1] + ' map: ' + image_holder['text']
+                        x[1]['text'] = ('Map: ' if self.maps_picked == 0 else self.ordinals[self.maps_picked][1] + ' map: ') + x[1]['text']
                         x[1]['fg'] = 'green'
                         self.add_to_timeline(x[1]['text'], 'green')
                         break
 
-                self.export_btn = tk.Button(self, text = 'Export', font = ("Helvetica", 12), command = lambda: self.file_save())
-                self.export_btn.grid(row = 0, column = 6, pady = (10, 30), ipadx = 40, columnspan = 2, rowspan = 2, sticky = N)
-
+                self.add_export_button()
                 return
 
             self.state = self.data[2][self.state_index]
+
+            if self.state == 'FINISH':
+                self.info_text['text'] = 'Veto Complete'
+                for x in range(len(self.map_data)):
+                    self.map_data[x] = (False, self.map_data[x][1], self.map_data[x][2])
+
+                self.add_export_button()
+                return
+
             current_team = self.data[int(self.state[0]) - 1]
             action_number = self.ordinals[int(self.state[-1]) - 1][0]
             action_name = ("Veto" if self.state.find('BAN') != -1 else "Pick")
